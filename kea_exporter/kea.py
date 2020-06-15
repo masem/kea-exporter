@@ -59,9 +59,23 @@ class KeaSocket:
         if 'Dhcp4' in self.config:
             self.dhcp_version = DHCPVersion.DHCP4
             subnets = self.config['Dhcp4']['subnet4']
+            for shared_network in self.config['Dhcp4']['shared-networks']:
+                shared_network4 = []
+                for subnet4 in shared_network['subnet4']:
+                    subnet4['shared_network'] = shared_network['name']
+                    shared_network4.append(subnet4)
+                subnets += shared_network4
+
         elif 'Dhcp6' in self.config:
             self.dhcp_version = DHCPVersion.DHCP6
             subnets = self.config['Dhcp6']['subnet6']
+            for shared_network in self.config['Dhcp6']['shared-networks']:
+                shared_network6 = []
+                for subnet6 in shared_network['subnet6']:
+                    subnet6['shared_network'] = shared_network['name']
+                    shared_network6.append(subnet6)
+                subnets += shared_network6
+
         else:
             click.echo(f'Socket {self.sock_path} has no supported configuration', file=sys.stderr)
             sys.exit(1)
@@ -109,23 +123,23 @@ class KeaExporter:
             'addresses_assigned_total': Gauge(
                 f'{self.prefix_dhcp4}_addresses_assigned_total',
                 'Assigned addresses',
-                ['subnet']),
+                ['subnet', 'network']),
             'addresses_declined_total': Gauge(
                 f'{self.prefix_dhcp4}_addresses_declined_total',
                 'Declined counts',
-                ['subnet']),
+                ['subnet', 'network']),
             'addresses_declined_reclaimed_total': Gauge(
                 f'{self.prefix_dhcp4}_addresses_declined_reclaimed_total',
                 'Declined addresses that were reclaimed',
-                ['subnet']),
+                ['subnet', 'network']),
             'addresses_reclaimed_total': Gauge(
                 f'{self.prefix_dhcp4}_addresses_reclaimed_total',
                 'Expired addresses that were reclaimed',
-                ['subnet']),
+                ['subnet', 'network']),
             'addresses_total': Gauge(
                 f'{self.prefix_dhcp4}_addresses_total',
                 'Size of subnet address pool',
-                ['subnet']
+                ['subnet', 'network']
             )
         }
 
@@ -278,36 +292,36 @@ class KeaExporter:
             'addresses_declined_total': Gauge(
                 f'{self.prefix_dhcp6}_addresses_declined_total',
                 'Declined addresses',
-                ['subnet']),
+                ['subnet', 'network']),
             'addresses_declined_reclaimed_total': Gauge(
                 f'{self.prefix_dhcp6}_addresses_declined_reclaimed_total',
                 'Declined addresses that were reclaimed',
-                ['subnet']),
+                ['subnet', 'network']),
             'addresses_reclaimed_total': Gauge(
                 f'{self.prefix_dhcp6}_addresses_reclaimed_total',
                 'Expired addresses that were reclaimed',
-                ['subnet']),
+                ['subnet', 'network']),
 
             # IA_NA
             'na_assigned_total': Gauge(
                 f'{self.prefix_dhcp6}_na_assigned_total',
                 'Assigned non-temporary addresses (IA_NA)',
-                ['subnet']),
+                ['subnet', 'network']),
             'na_total': Gauge(
                 f'{self.prefix_dhcp6}_na_total',
                 'Size of non-temporary address pool',
-                ['subnet']
+                ['subnet', 'network']
             ),
 
             # IA_PD
             'pd_assigned_total': Gauge(
                 f'{self.prefix_dhcp6}_pd_assigned_total',
                 'Assigned prefix delegations (IA_PD)',
-                ['subnet']),
+                ['subnet', 'network']),
             'pd_total': Gauge(
                 f'{self.prefix_dhcp6}_pd_total',
                 'Size of prefix delegation pool',
-                ['subnet']
+                ['subnet', 'network']
             ),
 
         }
@@ -494,6 +508,8 @@ class KeaExporter:
                                 )
                             continue
                         labels['subnet'] = subnet['subnet']
+                        labels['network'] = subnet['shared_network']                                              
+                                                
                     else:
                         click.echo(f'subnet pattern failed for metric: {key}',
                                    file=sys.stderr)
